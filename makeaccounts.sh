@@ -1,5 +1,5 @@
 #!/bin/bash
-name=accounts
+name=PogoPlayer/accounts
 if [[ -e $name.csv ]] ; then
     i=0
     while [[ -e $name-$i.csv ]] ; do
