@@ -1,7 +1,7 @@
 #!/bin/bash
 name=PogoPlayer/accounts
 if [[ -e $name.csv ]] ; then
-    mv $name$(date+"%Y%m%d%H%M").csv
+    mv $name.csv $name$(date +"%Y%m%d%H%M").csv
 fi
 DEBUG=nightmare xvfb-run --server-args="-screen 0 1024x768x24" node index.js
 cd PogoPlayer
