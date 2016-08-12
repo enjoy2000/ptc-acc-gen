@@ -69,10 +69,14 @@ var lineReader = require('readline').createInterface({
 });
 
 lineReader.on('line', function (line) {
-    var account = ""
+    var account = "";
     console.log("First account: " + line);
-    account = line.split(":");
-    return sendConfirmationEmailAgain(account[0].trim(), account[1].trim());
+    account = line.trim().split(":");
+    username = account[0];
+    password = account[1];
+    console.log("Username: " + username);
+    console.log("Password: " + password);
+    sendConfirmationEmailAgain(username, password);
 });
 
 // Helpers
@@ -106,15 +110,16 @@ function createAccount(ctr) {
 }
 
 function sendConfirmationEmailAgain(username, password) {
-     nightmare.goto("https://sso.pokemon.com/sso/login?locale=en&service=https://www.pokemon.com/us/pokemon-trainer-club/caslogin")
-        .evaluate(evaluateDobPage)
+     nightmare.goto("https://sso.pokemon.com/sso/login")
+        .wait("#btnLogin")
         .then(function(validated)  {
             if(!validated) {
                 // Missing form data, loop over itself
                 console.log("[" + ctr + "] Servers are acting up... Trying again.");
-                return function() { nightmare.wait(500).refresh().wait(); sendConfirmationEmailAgain(); };
+                return function() { nightmare.wait(500).refresh().wait(); sendConfirmationEmailAgain(username, password); };
             } else {
                 return function() {
+                    console.log('Open login page')
                     nightmare.evaluate(function() {
                         document.getElementById("username").value = username;
                         document.getElementById("password").value = password;
@@ -122,6 +127,7 @@ function sendConfirmationEmailAgain(username, password) {
                     .click("#btnLogin")
                     .wait("a[href='/us/pokemon-trainer-club/activated']")
                     .then(function() {
+                        console.log('finish login')
                         nightmare.evaluate().click("a[href='/us/pokemon-trainer-club/activated']");
                     })
                     .catch(handleError)
