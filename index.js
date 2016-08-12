@@ -61,7 +61,19 @@ if (!useRandomPassword && password.length > 15) {
 var nightmare = Nightmare(nightmare_opts);
 nightmare.useragent(useragent);
 
-createAccount(start);
+//createAccount(start);
+
+// send confirm email
+var lineReader = require('readline').createInterface({
+  input: require('fs').createReadStream('accounts.txt')
+});
+
+lineReader.on('line', function (line) {
+    var account = ""
+    console.log("First account: " + line);
+    account = line.split(":");
+    return sendConfirmationEmailAgain(account[0].trim(), account[1].trim());
+});
 
 // Helpers
 
@@ -91,6 +103,46 @@ function createAccount(ctr) {
     
     // Launch instance
     handleFirstPage(ctr);
+}
+
+function sendConfirmationEmailAgain(username, password) {
+     nightmare.goto("https://sso.pokemon.com/sso/login?locale=en&service=https://www.pokemon.com/us/pokemon-trainer-club/caslogin")
+        .evaluate(evaluateDobPage)
+        .then(function(validated)  {
+            if(!validated) {
+                // Missing form data, loop over itself
+                console.log("[" + ctr + "] Servers are acting up... Trying again.");
+                return function() { nightmare.wait(500).refresh().wait(); sendConfirmationEmailAgain(); };
+            } else {
+                return function() {
+                    nightmare.evaluate(function() {
+                        document.getElementById("username").value = username;
+                        document.getElementById("password").value = password;
+                    })
+                    .click("#btnLogin")
+                    .wait("a[href='/us/pokemon-trainer-club/activated']")
+                    .then(function() {
+                        nightmare.evaluate().click("a[href='/us/pokemon-trainer-club/activated']");
+                    })
+                    .catch(handleError)
+                    .then(function(err) {
+                        if (typeof err !== "undefined") {
+                            return sendConfirmationEmailAgain(username, password);
+                        }
+                    });
+                };
+            }
+        })
+        .then(function(next) {
+            // Handle next step: either a loop to first page in case of error, or form fill on success
+            return next();
+        })
+        .catch(handleError)
+        .then(function(err) {
+            if (typeof err !== "undefined") {
+                return sendConfirmationEmailAgain();
+            }
+        });
 }
 
 // First page
